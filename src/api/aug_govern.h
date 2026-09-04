@@ -94,6 +94,14 @@ AUG_EXPORT int aug_build_road(int x0, int y0, int x1, int y1, int measure_only);
 AUG_EXPORT int aug_clear(int x0, int y0, int x1, int y1, int measure_only);
 /** Demolishes one building by id (its whole footprint). Returns 1 on success. */
 AUG_EXPORT int aug_demolish(int building_id);
+/**
+ * Throws a low bridge across the water starting at (x,y), which must be the shore water tile on the
+ * near bank: water, no road or building on it, and exactly three of its four neighbours water. The
+ * engine measures the crossing itself, so it is the authority on where a bridge can go; with
+ * measure_only nothing is built or charged. Returns the bridge length in tiles, 0 if there is no
+ * crossing here. Bridge tiles carry a road, so a bridge joins the road networks on the two banks.
+ */
+AUG_EXPORT int aug_bridge(int x, int y, int measure_only);
 
 /** City policy. */
 AUG_EXPORT void aug_set_tax(int percentage);

@@ -13,6 +13,7 @@
 #include "city/labor.h"
 #include "figure/formation.h"
 #include "game/undo.h"
+#include "map/bridge.h"
 #include "map/building.h"
 #include "map/data.h"
 #include "map/desirability.h"
@@ -269,6 +270,47 @@ int aug_build(int type, int x, int y)
     // gardens and plazas are terrain, not buildings, so they have no id to give back
     int id = (int) map_building_at(map_grid_offset(x, y));
     return id > 0 ? id : 1;
+}
+
+/**
+ * A bridge is not placed through building_construction: the engine's own path runs the measurement
+ * from the ghost that the player drags, and only then adds the bridge. Measure and add here in one
+ * breath, because map_bridge_add consumes the static state the measurement leaves behind.
+ *
+ * The slice of blocked tiles is a GRID_SIZE * GRID_SIZE array of ints, far too large for the wasm
+ * stack, so it lives in the data segment. Nothing hashed is touched by the measurement.
+ */
+static grid_slice bridge_blocked;
+
+int aug_bridge(int x, int y, int measure_only)
+{
+    if (!map_grid_is_inside(x, y, 1)) {
+        return 0;
+    }
+    if (!measure_only && city_finance_out_of_money()) {
+        return 0;
+    }
+    int length = 0;
+    int direction = 0;
+    bridge_blocked.size = 0;
+    int end_offset = map_bridge_calculate_length_direction(x, y, &length, &direction, &bridge_blocked);
+    if (!end_offset || bridge_blocked.size > 0 || length < 2) {
+        map_bridge_reset_building_length();
+        return 0;
+    }
+    if (measure_only) {
+        map_bridge_reset_building_length();
+        return length;
+    }
+    int built = map_bridge_add(x, y, 0);
+    if (built <= 1) {
+        return 0;
+    }
+    city_finance_process_construction(built * aug_build_cost(BUILDING_LOW_BRIDGE));
+    // map_bridge_add refreshes routing, but road networks are numbered separately.
+    map_road_network_update();
+    game_undo_disable();
+    return built;
 }
 
 /**
