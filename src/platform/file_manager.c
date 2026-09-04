@@ -166,7 +166,9 @@ static const char *const assets_directory = ASSETS_DIRECTORY;
 #endif
 
 static const char *ASSET_DIRS[MAX_ASSET_DIRS] = {
-#ifdef _WIN32
+#if defined(_WIN32) || (defined(PANTHEON_HEADLESS) && !defined(__APPLE__) && !defined(__EMSCRIPTEN__))
+    // Pantheon: the headless CLI's --assets-base is served through the SDL base path on every
+    // platform, not only the ones where stock Augustus lists it (Linux found no assets otherwise).
     "***SDL_BASE_PATH***",
 #endif
 #ifdef __EMSCRIPTEN__
