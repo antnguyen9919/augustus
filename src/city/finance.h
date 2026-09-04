@@ -167,6 +167,16 @@ int city_finance_tourism_income_last_month(void);
 
 int city_finance_tourism_lowest_factor(void);
 
+#ifdef PANTHEON
+/**
+ * Pantheon: this year's overview as the financial advisor would show it, with the estimates for the
+ * rest of the year. The engine only refreshes those numbers when the player opens an advisor, so a
+ * headless city has stale ones; this recomputes them and puts the city's own values back, leaving
+ * the state (and the hash) untouched.
+ */
+void city_finance_pantheon_estimates(finance_overview *overview, int *estimated_tax_income, int *estimated_wages);
+#endif
+
 const finance_overview *city_finance_overview_last_year(void);
 
 const finance_overview *city_finance_overview_this_year(void);

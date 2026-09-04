@@ -139,6 +139,62 @@ int aug_coverage(int32_t *out)
     return AUG_COVERAGE_COUNT;
 }
 
+int aug_finance(int32_t *out)
+{
+    finance_overview now;
+    int estimated_tax_income = 0, estimated_wages = 0;
+    city_finance_pantheon_estimates(&now, &estimated_tax_income, &estimated_wages);
+    const finance_overview *last = city_finance_overview_last_year();
+    memset(out, 0, AUG_FINANCE_COUNT * sizeof(int32_t));
+    out[0] = city_finance_treasury();
+    out[1] = city_finance_tax_percentage();
+    out[2] = estimated_tax_income;
+    out[3] = estimated_wages;
+    out[4] = city_finance_percentage_taxed_people();
+    out[5] = now.income.taxes;
+    out[6] = now.income.exports;
+    out[7] = now.income.total;
+    out[8] = now.expenses.wages;
+    out[9] = now.expenses.construction;
+    out[10] = now.expenses.interest;
+    out[11] = now.expenses.salary;
+    out[12] = now.expenses.sundries;
+    out[13] = now.expenses.tribute;
+    out[14] = now.expenses.levies;
+    out[15] = now.expenses.total;
+    out[16] = now.net_in_out;
+    out[17] = last->income.total;
+    out[18] = last->expenses.total;
+    out[19] = last->expenses.construction;
+    return AUG_FINANCE_COUNT;
+}
+
+int aug_untaxed_houses(int32_t *out)
+{
+    int untaxed = 0, taxed = 0, sx = 0, sy = 0, people = 0;
+    for (int i = 1; i < building_count(); i++) {
+        building *b = building_get(i);
+        if (!occupied_house(b)) {
+            continue;
+        }
+        if (b->house_tax_coverage) {
+            taxed++;
+        } else {
+            untaxed++;
+            sx += b->x;
+            sy += b->y;
+            people += b->house_population;
+        }
+    }
+    memset(out, 0, 5 * sizeof(int32_t));
+    out[0] = untaxed;
+    out[1] = untaxed ? sx / untaxed : -1;
+    out[2] = untaxed ? sy / untaxed : -1;
+    out[3] = people;
+    out[4] = taxed;
+    return untaxed;
+}
+
 int aug_build_cost(int type)
 {
     if (!valid_type(type)) {
@@ -210,7 +266,9 @@ int aug_build(int type, int x, int y)
     city_finance_process_construction(aug_build_cost(type));
     // No undo for API placements: the governor never takes anything back.
     game_undo_disable();
-    return (int) map_building_at(map_grid_offset(x, y));
+    // gardens and plazas are terrain, not buildings, so they have no id to give back
+    int id = (int) map_building_at(map_grid_offset(x, y));
+    return id > 0 ? id : 1;
 }
 
 /**

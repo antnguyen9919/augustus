@@ -22,6 +22,8 @@
 #include "map/data.h"
 #include "map/terrain.h"
 
+#include <string.h>
+
 #define MAX_HOUSE_LEVELS 20
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -807,6 +809,28 @@ const finance_overview *city_finance_overview_last_year(void)
 {
     return &city_data.finance.last_year;
 }
+
+#ifdef PANTHEON
+void city_finance_pantheon_estimates(finance_overview *overview, int *estimated_tax_income, int *estimated_wages)
+{
+    // the estimators write their working values into the city, so keep a copy of everything they touch
+    unsigned char saved_finance[sizeof(city_data.finance)];
+    unsigned char saved_taxes[sizeof(city_data.taxes)];
+    memcpy(saved_finance, &city_data.finance, sizeof(city_data.finance));
+    memcpy(saved_taxes, &city_data.taxes, sizeof(city_data.taxes));
+
+    city_finance_estimate_taxes();
+    city_finance_estimate_wages();
+    city_finance_update_interest();
+    city_finance_calculate_totals();
+    *overview = city_data.finance.this_year;
+    *estimated_tax_income = city_data.finance.estimated_tax_income;
+    *estimated_wages = city_data.finance.estimated_wages;
+
+    memcpy(&city_data.finance, saved_finance, sizeof(city_data.finance));
+    memcpy(&city_data.taxes, saved_taxes, sizeof(city_data.taxes));
+}
+#endif
 
 const finance_overview *city_finance_overview_this_year(void)
 {

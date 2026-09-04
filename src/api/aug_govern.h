@@ -53,6 +53,21 @@ AUG_EXPORT int aug_house_levels(int32_t *out);
  */
 AUG_EXPORT int aug_coverage(int32_t *out);
 
+#define AUG_FINANCE_COUNT 20
+/**
+ * The city's money: treasury, tax percentage, estimated tax income, estimated wages, the percentage
+ * of people who pay tax, then this year so far (tax income, exports, total income; wages,
+ * construction, interest, salary, sundries, tribute, levies and total expenses; net) and last
+ * year's total income, total expenses and construction. Returns AUG_FINANCE_COUNT.
+ */
+AUG_EXPORT int aug_finance(int32_t *out);
+/**
+ * Occupied houses no tax collector reaches: count, the centroid (x, y) of those houses (-1 when
+ * there are none), the people living in them, and the number of houses that are covered. Writes 5
+ * values and returns the count of uncovered houses.
+ */
+AUG_EXPORT int aug_untaxed_houses(int32_t *out);
+
 /** Cost of one building of this type (or of one tile for roads, walls, clearing). */
 AUG_EXPORT int aug_build_cost(int type);
 /** Footprint side length of this building type, 0 for unknown types. */
@@ -65,7 +80,10 @@ AUG_EXPORT int aug_build_size(int type);
  * reservoirs) are not fully validated here; aug_build is authoritative.
  */
 AUG_EXPORT int aug_can_build(int type, int x, int y);
-/** Places the building at exact coordinates and charges its cost. Returns the building id or 0. */
+/**
+ * Places the building at exact coordinates and charges its cost. Returns the building id, 1 for the
+ * kinds that leave no building behind (gardens, plazas), or 0 if the engine refused.
+ */
 AUG_EXPORT int aug_build(int type, int x, int y);
 /**
  * Builds a road from (x0,y0) to (x1,y1) along the engine's own route, like dragging in the game.
