@@ -84,6 +84,20 @@ AUG_EXPORT int aug_coverage(int32_t *out);
  * year's total income, total expenses and construction. Returns AUG_FINANCE_COUNT.
  */
 AUG_EXPORT int aug_finance(int32_t *out);
+
+/** Number of values aug_building_supply writes. */
+#define AUG_SUPPLY_COUNT 11
+/**
+ * What one production or storage building holds and whether its output can move. Written for a
+ * governor that has to tell "this workshop is idle" from "this workshop has nowhere to send it":
+ * out[0] output resource id, out[1] production progress, out[2] houses covered, out[3] workers,
+ * out[4] loads of its raw material in stock, out[5] loads of its output in stock, out[6] road
+ * network id, out[7] distance from the map entry (0 = the distribution system cannot see it),
+ * out[8] loads of weapons held (a warehouse counts its eight spaces, anything else its own store),
+ * out[9] whether it accepts weapons, out[10] whether a warehouse would take a load of them now.
+ * Returns 0 and writes nothing for an id that is not a building in use. Read-only.
+ */
+AUG_EXPORT int aug_building_supply(int building_id, int32_t *out);
 /**
  * Occupied houses no tax collector reaches: count, the centroid (x, y) of those houses (-1 when
  * there are none), the people living in them, and the number of houses that are covered. Writes 5

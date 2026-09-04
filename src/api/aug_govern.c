@@ -6,6 +6,8 @@
 #include "building/construction_clear.h"
 #include "building/construction_routed.h"
 #include "building/house_evolution.h"
+#include "building/industry.h"
+#include "building/warehouse.h"
 #include "building/properties.h"
 #include "building/roadblock.h"
 #include "city/culture.h"
@@ -186,6 +188,34 @@ int aug_coverage(int32_t *out)
         out[11 + god] = city_culture_coverage_religion(god);
     }
     return AUG_COVERAGE_COUNT;
+}
+
+int aug_building_supply(int building_id, int32_t *out)
+{
+    building *b = building_get(building_id);
+    if (!b || b->state != BUILDING_STATE_IN_USE) {
+        return 0;
+    }
+    memset(out, 0, AUG_SUPPLY_COUNT * sizeof(int32_t));
+    resource_supply_chain chain[RESOURCE_SUPPLY_CHAIN_MAX_SIZE];
+    int raw = building_get_raw_materials_for_workshop(chain, b->type);
+    out[0] = b->output_resource_id;
+    out[1] = b->data.industry.progress;
+    out[2] = b->houses_covered;
+    out[3] = b->num_workers;
+    out[4] = raw > 0 ? b->resources[chain[0].raw_material] : 0;
+    out[5] = b->output_resource_id ? b->resources[b->output_resource_id] : 0;
+    out[6] = b->road_network_id;
+    out[7] = b->distance_from_entry;
+    if (b->type == BUILDING_WAREHOUSE) {
+        out[8] = building_warehouse_amount_can_get_from(b, RESOURCE_WEAPONS);
+        out[10] = building_warehouse_accepts_storage(b, RESOURCE_WEAPONS, 0)
+            && building_warehouse_maximum_receptible_amount(b, RESOURCE_WEAPONS) > 0;
+    } else {
+        out[8] = b->resources[RESOURCE_WEAPONS];
+    }
+    out[9] = b->accepted_goods[RESOURCE_WEAPONS] != 0;
+    return AUG_SUPPLY_COUNT;
 }
 
 int aug_finance(int32_t *out)
