@@ -16,6 +16,7 @@
 #include "map/desirability.h"
 #include "map/elevation.h"
 #include "map/grid.h"
+#include "map/property.h"
 #include "map/road_network.h"
 #include "map/terrain.h"
 #include "map/tiles.h"
@@ -185,7 +186,11 @@ int aug_clear(int x0, int y0, int x1, int y1, int measure_only)
         return 0;
     }
     if (measure_only) {
-        return (int) building_construction_clear_select(x0, y0, x1, y1);
+        // clear_select marks the tiles "deleting" in the property grid (the GUI's red overlay);
+        // drop those bits again so a measurement leaves the state hash untouched.
+        unsigned int tiles = building_construction_clear_select(x0, y0, x1, y1);
+        map_property_clear_constructing_and_deleted();
+        return (int) tiles;
     }
     if (city_finance_out_of_money()) {
         return 0;
@@ -212,7 +217,8 @@ int aug_demolish(int building_id)
         return 0;
     }
     building *b = building_main(building_get(building_id));
-    if (!b || b->state != BUILDING_STATE_IN_USE) {
+    // A building placed this tick is still BUILDING_STATE_CREATED; it turns IN_USE on the next update.
+    if (!b || (b->state != BUILDING_STATE_IN_USE && b->state != BUILDING_STATE_CREATED)) {
         return 0;
     }
     int size = building_properties_for_type(b->type)->size;
