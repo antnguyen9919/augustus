@@ -10,6 +10,7 @@
 #include "building/warehouse.h"
 #include "building/properties.h"
 #include "building/roadblock.h"
+#include "building/storage.h"
 #include "city/culture.h"
 #include "city/festival.h"
 #include "city/finance.h"
@@ -215,6 +216,16 @@ int aug_building_supply(int building_id, int32_t *out)
         out[8] = b->resources[RESOURCE_WEAPONS];
     }
     out[9] = b->accepted_goods[RESOURCE_WEAPONS] != 0;
+    if (b->type == BUILDING_WAREHOUSE) {
+        // What is actually in there, so "the warehouse is full of something else" is a reading and
+        // not a guess: total loads across every resource, and the one holding the most of them.
+        int stored = 0;
+        for (resource_type r = RESOURCE_MIN; r < RESOURCE_MAX; r++) {
+            stored += building_warehouse_get_amount(b, r);
+        }
+        out[11] = stored;
+        out[12] = building_storage_get_highest_quantity_resource(b);
+    }
     return AUG_SUPPLY_COUNT;
 }
 
@@ -543,6 +554,44 @@ int aug_festival(int god, int size)
         return 0;
     }
     city_festival_schedule();
+    return 1;
+}
+
+int aug_storage_order(int building_id, int resource, int state)
+{
+    if (state < 0 || state >= BUILDING_STORAGE_STATE_MAX) {
+        return 0;
+    }
+    if (resource < -1 || resource >= RESOURCE_MAX) {
+        return 0;
+    }
+    if (building_id <= 0 || building_id >= building_count()) {
+        return 0;
+    }
+    building *b = building_get(building_id);
+    if (b->state != BUILDING_STATE_IN_USE && b->state != BUILDING_STATE_CREATED) {
+        return 0;
+    }
+    if (!b->storage_id) {
+        return 0;
+    }
+    const building_storage *current = building_storage_get(b->storage_id);
+    if (!current) {
+        return 0;
+    }
+    // Read-modify-write the whole order table: there is no per-resource setter that takes a state,
+    // only a cycler. Permissions and empty_all are left exactly as they were.
+    building_storage new_data = *current;
+    for (resource_type r = RESOURCE_MIN; r < RESOURCE_MAX; r++) {
+        if (resource != -1 && r != resource) {
+            continue;
+        }
+        new_data.resource_state[r].state = state;
+        if (state != BUILDING_STORAGE_STATE_NOT_ACCEPTING) {
+            new_data.resource_state[r].quantity = BUILDING_STORAGE_QUANTITY_MAX;
+        }
+    }
+    building_storage_set_data(b->storage_id, new_data);
     return 1;
 }
 

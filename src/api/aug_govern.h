@@ -86,7 +86,7 @@ AUG_EXPORT int aug_coverage(int32_t *out);
 AUG_EXPORT int aug_finance(int32_t *out);
 
 /** Number of values aug_building_supply writes. */
-#define AUG_SUPPLY_COUNT 11
+#define AUG_SUPPLY_COUNT 13
 /**
  * What one production or storage building holds and whether its output can move. Written for a
  * governor that has to tell "this workshop is idle" from "this workshop has nowhere to send it":
@@ -153,6 +153,19 @@ AUG_EXPORT int aug_festival(int god, int size);
  * Returns 1 if the fort has a live legion and the layout was set, 0 otherwise.
  */
 AUG_EXPORT int aug_legion_layout(int fort_building_id, int layout);
+
+/**
+ * Sets one resource's storage order on a warehouse or granary, so a governor can reserve a store
+ * for one good. The engine has no errand that walks weapons from a workshop to a barracks: the
+ * workshop's cart pusher can only reach a warehouse, and only an armoury supplier takes them the
+ * last step. A shared warehouse therefore fills with whatever else the city's cart pushers bring
+ * and the weapons workshop jams at full progress with nowhere to put a finished load.
+ * @param building_id Warehouse or granary
+ * @param resource Resource id, or -1 for every resource
+ * @param state building_storage_state: 0 not accepting, 1 accepting, 2 getting, 3 maintaining
+ * @return 1 when the order was set, 0 when the building has no storage
+ */
+AUG_EXPORT int aug_storage_order(int building_id, int resource, int state);
 
 /**
  * Whether a 3x3 reservoir placed with its top-left at (x,y) would actually hold water: either
