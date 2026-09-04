@@ -71,6 +71,15 @@ int game_file_io_write_saved_game_to_memory(uint8_t **out_data, int *out_size, i
  */
 uint32_t game_file_io_state_hash(void);
 
+/**
+ * Pantheon: one FNV-1a hash per savegame piece, in the order game_file_io_state_hash walks them;
+ * presentation-only pieces and empty ones get 0. Returns how many were written.
+ */
+int game_file_io_state_hash_pieces(uint32_t *out, int capacity);
+
+/** Pantheon: the name of one savegame piece by index, for reporting which one diverged. */
+const char *game_file_io_piece_name(int index);
+
 /** Pantheon: print one line per savegame piece (index, size, hash) to stdout, for debugging. */
 void game_file_io_state_hash_dump(void);
 

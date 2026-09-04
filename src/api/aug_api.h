@@ -21,6 +21,9 @@
 /** A game day is 50 ticks, a month 16 days, a year 12 months. */
 #define AUG_TICKS_PER_DAY 50
 #define AUG_TICKS_PER_MONTH (16 * AUG_TICKS_PER_DAY)
+
+/** Room for every savegame piece aug_state_pieces can report (the engine has about a hundred). */
+#define AUG_STATE_PIECES 160
 #define AUG_TICKS_PER_YEAR (12 * AUG_TICKS_PER_MONTH)
 
 // --- lifecycle ---------------------------------------------------------------------------
@@ -78,6 +81,14 @@ AUG_EXPORT int aug_state_read(uint8_t *data, int size);
 
 /** FNV-1a hash over the simulation pieces (presentation-only pieces excluded). */
 AUG_EXPORT uint32_t aug_state_hash(void);
+/**
+ * The hash broken up per savegame piece, so a viewer and its headless twin that disagree can say
+ * which part of the city they disagree about. Writes up to AUG_STATE_PIECES values (0 for the
+ * presentation-only pieces the state hash skips) and returns how many. Changes nothing.
+ */
+AUG_EXPORT int aug_state_pieces(uint32_t *out);
+/** The name of the piece at that index, for reporting. */
+AUG_EXPORT const char *aug_piece_name(int index);
 
 AUG_EXPORT void aug_free(void *pointer);
 

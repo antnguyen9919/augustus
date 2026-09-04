@@ -2224,6 +2224,34 @@ static const char *piece_name(const buffer *buf)
     return "?";
 }
 
+int game_file_io_state_hash_pieces(uint32_t *out, int capacity)
+{
+    resource_set_mapping(RESOURCE_CURRENT_VERSION);
+    init_savegame_data(SAVE_GAME_CURRENT_VERSION);
+    savegame_save_to_state(&savegame_data.state);
+    int n = savegame_data.num_pieces < capacity ? savegame_data.num_pieces : capacity;
+    for (int i = 0; i < n; i++) {
+        file_piece *piece = &savegame_data.pieces[i];
+        // presentation-only pieces are left at 0: they are allowed to differ between a viewer and a twin
+        out[i] = piece_is_presentation_only(&piece->buf) || !piece->buf.size
+            ? 0 : fnv1a_32(2166136261u, piece->buf.data, piece->buf.size);
+    }
+    clear_savegame_pieces();
+    return n;
+}
+
+const char *game_file_io_piece_name(int index)
+{
+    // only the piece list is needed, not its contents: init_savegame_data wires the buffers up
+    // without serializing anything into them, and every name is a literal that outlives the clear
+    resource_set_mapping(RESOURCE_CURRENT_VERSION);
+    init_savegame_data(SAVE_GAME_CURRENT_VERSION);
+    const char *name = index >= 0 && index < savegame_data.num_pieces
+        ? piece_name(&savegame_data.pieces[index].buf) : "?";
+    clear_savegame_pieces();
+    return name;
+}
+
 void game_file_io_state_hash_dump(void)
 {
     resource_set_mapping(RESOURCE_CURRENT_VERSION);

@@ -188,6 +188,16 @@ uint32_t aug_state_hash(void)
     return game_file_io_state_hash();
 }
 
+int aug_state_pieces(uint32_t *out)
+{
+    return game_file_io_state_hash_pieces(out, AUG_STATE_PIECES);
+}
+
+const char *aug_piece_name(int index)
+{
+    return game_file_io_piece_name(index);
+}
+
 void aug_free(void *pointer)
 {
     free(pointer);
