@@ -31,6 +31,28 @@ AUG_EXPORT const uint8_t *aug_grid_elevation(void);
 /** Writes entry x, entry y, exit x, exit y; returns 4. */
 AUG_EXPORT int aug_map_points(int32_t *out);
 
+/** Number of histogram slots aug_house_blockers writes. */
+#define AUG_HOUSE_BLOCKER_SLOTS 128
+/** Number of house levels aug_house_levels writes (HOUSE_SMALL_TENT .. HOUSE_LUXURY_PALACE). */
+#define AUG_HOUSE_LEVELS 20
+/** Number of values aug_coverage writes. */
+#define AUG_COVERAGE_COUNT 16
+
+/**
+ * "Why won't this house evolve" over every occupied house: out[code]++ for the engine's evolve text
+ * code (0..29 devolve reasons, 30..59 evolve blockers, 60 max level, 62 desirability, 65 second wine;
+ * custom-translation codes land in slot 127). Returns the number of houses counted. Read-only:
+ * the codes are computed on the side and the saved field is left as it was.
+ */
+AUG_EXPORT int aug_house_blockers(int32_t *out);
+/** out[level]++ for every occupied house; returns the number of houses counted. */
+AUG_EXPORT int aug_house_levels(int32_t *out);
+/**
+ * Culture coverage percentages: theater, amphitheater, arena, colosseum, hippodrome, tavern, average
+ * entertainment, school, library, academy, hospital, then religion for the five gods. Returns 16.
+ */
+AUG_EXPORT int aug_coverage(int32_t *out);
+
 /** Cost of one building of this type (or of one tile for roads, walls, clearing). */
 AUG_EXPORT int aug_build_cost(int type);
 /** Footprint side length of this building type, 0 for unknown types. */

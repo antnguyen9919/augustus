@@ -5,7 +5,9 @@
 #include "building/construction_building.h"
 #include "building/construction_clear.h"
 #include "building/construction_routed.h"
+#include "building/house_evolution.h"
 #include "building/properties.h"
+#include "city/culture.h"
 #include "city/festival.h"
 #include "city/finance.h"
 #include "city/labor.h"
@@ -22,6 +24,8 @@
 #include "map/tiles.h"
 #include "pantheon/rules.h"
 #include "scenario/map.h"
+
+#include <string.h>
 
 int aug_grid_size(void)
 {
@@ -72,6 +76,67 @@ int aug_map_points(int32_t *out)
 static int valid_type(int type)
 {
     return type > BUILDING_NONE && type < BUILDING_TYPE_MAX;
+}
+
+static int occupied_house(const building *b)
+{
+    return b->state == BUILDING_STATE_IN_USE && b->house_size && building_is_house(b->type) && b->house_population > 0;
+}
+
+int aug_house_blockers(int32_t *out)
+{
+    memset(out, 0, AUG_HOUSE_BLOCKER_SLOTS * sizeof(int32_t));
+    int houses = 0;
+    for (int i = 1; i < building_count(); i++) {
+        building *b = building_get(i);
+        if (!occupied_house(b)) {
+            continue;
+        }
+        // Only the building-info window computes this field, so it is stale in headless play; compute it
+        // here and put the saved value back, because the field is part of the hashed state.
+        int saved = b->data.house.evolve_text_id;
+        building_house_determine_evolve_text(b, building_house_determine_worst_desirability_building_type(b));
+        int code = b->data.house.evolve_text_id;
+        b->data.house.evolve_text_id = saved;
+        out[code >= 0 && code < AUG_HOUSE_BLOCKER_SLOTS - 1 ? code : AUG_HOUSE_BLOCKER_SLOTS - 1]++;
+        houses++;
+    }
+    return houses;
+}
+
+int aug_house_levels(int32_t *out)
+{
+    memset(out, 0, AUG_HOUSE_LEVELS * sizeof(int32_t));
+    int houses = 0;
+    for (int i = 1; i < building_count(); i++) {
+        building *b = building_get(i);
+        if (!occupied_house(b)) {
+            continue;
+        }
+        int level = b->subtype.house_level;
+        out[level >= 0 && level < AUG_HOUSE_LEVELS ? level : AUG_HOUSE_LEVELS - 1]++;
+        houses++;
+    }
+    return houses;
+}
+
+int aug_coverage(int32_t *out)
+{
+    out[0] = city_culture_coverage_theater();
+    out[1] = city_culture_coverage_amphitheater();
+    out[2] = city_culture_coverage_arena();
+    out[3] = city_culture_coverage_colosseum();
+    out[4] = city_culture_coverage_hippodrome();
+    out[5] = city_culture_coverage_tavern();
+    out[6] = city_culture_coverage_average_entertainment();
+    out[7] = city_culture_coverage_school();
+    out[8] = city_culture_coverage_library();
+    out[9] = city_culture_coverage_academy();
+    out[10] = city_culture_coverage_hospital();
+    for (int god = 0; god < 5; god++) {
+        out[11 + god] = city_culture_coverage_religion(god);
+    }
+    return AUG_COVERAGE_COUNT;
 }
 
 int aug_build_cost(int type)
