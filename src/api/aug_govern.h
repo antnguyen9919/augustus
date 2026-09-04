@@ -33,6 +33,22 @@ AUG_EXPORT int aug_map_points(int32_t *out);
 
 /** Number of histogram slots aug_house_blockers writes. */
 #define AUG_HOUSE_BLOCKER_SLOTS 128
+/**
+ * Augustus adds its own reasons on top of the original game's 0..65, as translation keys far outside
+ * that range. They are folded into slots of their own here so the governor can read them.
+ */
+#define AUG_BLOCKER_LATRINES 100
+#define AUG_BLOCKER_LATRINES_EVOLVE 101
+#define AUG_BLOCKER_FOURTH_FOOD 102
+#define AUG_BLOCKER_FOURTH_FOOD_EVOLVE 103
+#define AUG_BLOCKER_FIFTH_FOOD 104
+#define AUG_BLOCKER_FIFTH_FOOD_EVOLVE 105
+#define AUG_BLOCKER_FOURTH_GOOD 106
+#define AUG_BLOCKER_FOURTH_GOOD_EVOLVE 107
+#define AUG_BLOCKER_FIFTH_GOOD 108
+#define AUG_BLOCKER_FIFTH_GOOD_EVOLVE 109
+/** Number of building types aug_house_bad_neighbours writes (BUILDING_TYPE_MAX). */
+#define AUG_BUILDING_TYPES 213
 /** Number of house levels aug_house_levels writes (HOUSE_SMALL_TENT .. HOUSE_LUXURY_PALACE). */
 #define AUG_HOUSE_LEVELS 20
 /** Number of values aug_coverage writes. */
@@ -41,10 +57,17 @@ AUG_EXPORT int aug_map_points(int32_t *out);
 /**
  * "Why won't this house evolve" over every occupied house: out[code]++ for the engine's evolve text
  * code (0..29 devolve reasons, 30..59 evolve blockers, 60 max level, 62 desirability, 65 second wine;
- * custom-translation codes land in slot 127). Returns the number of houses counted. Read-only:
+ * Augustus's own reasons in slots 100..109, anything else in 127). Returns the number of houses
+ * counted. Read-only:
  * the codes are computed on the side and the saved field is left as it was.
  */
 AUG_EXPORT int aug_house_blockers(int32_t *out);
+/**
+ * Which building is dragging each house down: out[type]++ for the worst neighbour within eight
+ * tiles of every occupied house whose next level is out of reach for want of desirability (the
+ * houses aug_house_blockers counts under code 62). Returns how many houses had one. Read-only.
+ */
+AUG_EXPORT int aug_house_bad_neighbours(int32_t *out);
 /** out[level]++ for every occupied house; returns the number of houses counted. */
 AUG_EXPORT int aug_house_levels(int32_t *out);
 /**

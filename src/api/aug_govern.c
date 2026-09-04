@@ -24,6 +24,7 @@
 #include "map/terrain.h"
 #include "map/tiles.h"
 #include "pantheon/rules.h"
+#include "translation/translation.h"
 #include "scenario/map.h"
 
 #include <string.h>
@@ -84,6 +85,24 @@ static int occupied_house(const building *b)
     return b->state == BUILDING_STATE_IN_USE && b->house_size && building_is_house(b->type) && b->house_population > 0;
 }
 
+/** Augustus's own evolve reasons are translation keys far outside 0..65; give each one a slot. */
+static int blocker_slot(int code)
+{
+    switch (code) {
+        case TR_BUILDING_LATRINES_MISSING_DEVOLVE: return AUG_BLOCKER_LATRINES;
+        case TR_BUILDING_LATRINES_MISSING_EVOLVE: return AUG_BLOCKER_LATRINES_EVOLVE;
+        case TR_BUILDING_FOURTH_FOODTYPE_MISSING_DEVOLVE: return AUG_BLOCKER_FOURTH_FOOD;
+        case TR_BUILDING_FOURTH_FOODTYPE_MISSING_EVOLVE: return AUG_BLOCKER_FOURTH_FOOD_EVOLVE;
+        case TR_BUILDING_FIFTH_FOODTYPE_MISSING_DEVOLVE: return AUG_BLOCKER_FIFTH_FOOD;
+        case TR_BUILDING_FIFTH_FOODTYPE_MISSING_EVOLVE: return AUG_BLOCKER_FIFTH_FOOD_EVOLVE;
+        case TR_BUILDING_FOURTH_GOOD_MISSING_DEVOLVE: return AUG_BLOCKER_FOURTH_GOOD;
+        case TR_BUILDING_FOURTH_GOOD_MISSING_EVOLVE: return AUG_BLOCKER_FOURTH_GOOD_EVOLVE;
+        case TR_BUILDING_FIFTH_GOOD_MISSING_DEVOLVE: return AUG_BLOCKER_FIFTH_GOOD;
+        case TR_BUILDING_FIFTH_GOOD_MISSING_EVOLVE: return AUG_BLOCKER_FIFTH_GOOD_EVOLVE;
+        default: return code >= 0 && code < AUG_HOUSE_BLOCKER_SLOTS - 1 ? code : AUG_HOUSE_BLOCKER_SLOTS - 1;
+    }
+}
+
 int aug_house_blockers(int32_t *out)
 {
     memset(out, 0, AUG_HOUSE_BLOCKER_SLOTS * sizeof(int32_t));
@@ -99,10 +118,34 @@ int aug_house_blockers(int32_t *out)
         building_house_determine_evolve_text(b, building_house_determine_worst_desirability_building_type(b));
         int code = b->data.house.evolve_text_id;
         b->data.house.evolve_text_id = saved;
-        out[code >= 0 && code < AUG_HOUSE_BLOCKER_SLOTS - 1 ? code : AUG_HOUSE_BLOCKER_SLOTS - 1]++;
+        out[blocker_slot(code)]++;
         houses++;
     }
     return houses;
+}
+
+int aug_house_bad_neighbours(int32_t *out)
+{
+    memset(out, 0, AUG_BUILDING_TYPES * sizeof(int32_t));
+    int blamed = 0;
+    for (int i = 1; i < building_count(); i++) {
+        building *b = building_get(i);
+        if (!occupied_house(b)) {
+            continue;
+        }
+        // the same reading aug_house_blockers takes, kept on the side so the saved field is untouched
+        int saved = b->data.house.evolve_text_id;
+        building_type worst = building_house_determine_worst_desirability_building_type(b);
+        building_house_determine_evolve_text(b, worst);
+        int code = b->data.house.evolve_text_id;
+        b->data.house.evolve_text_id = saved;
+        if (code != 62 || worst <= BUILDING_NONE || worst >= AUG_BUILDING_TYPES) {
+            continue;
+        }
+        out[worst]++;
+        blamed++;
+    }
+    return blamed;
 }
 
 int aug_house_levels(int32_t *out)
