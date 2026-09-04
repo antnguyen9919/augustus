@@ -12,6 +12,7 @@
 #include "city/finance.h"
 #include "city/labor.h"
 #include "figure/formation.h"
+#include "figure/formation_legion.h"
 #include "game/undo.h"
 #include "map/bridge.h"
 #include "map/building.h"
@@ -479,5 +480,24 @@ int aug_festival(int god, int size)
         return 0;
     }
     city_festival_schedule();
+    return 1;
+}
+
+int aug_legion_layout(int fort_building_id, int layout)
+{
+    if (layout < 0 || layout >= FORMATION_MAX) {
+        return 0;
+    }
+    building *fort = building_get(fort_building_id);
+    // A fort placed this same month is still BUILDING_STATE_CREATED; its legion is created at
+    // placement, so accept CREATED as well and let the formation guard below reject anything else.
+    if (fort->state != BUILDING_STATE_IN_USE && fort->state != BUILDING_STATE_CREATED) {
+        return 0;
+    }
+    formation *m = formation_get(fort->formation_id);
+    if (!m->in_use || !m->is_legion) {
+        return 0;
+    }
+    formation_legion_change_layout(m, layout);
     return 1;
 }

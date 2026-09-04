@@ -132,5 +132,12 @@ AUG_EXPORT void aug_change_wages(int delta);
 AUG_EXPORT void aug_set_labor_priority(int category, int priority);
 /** Schedules a festival for god (0..4) of size 1 small, 2 large, 3 grand. Returns 1 on success. */
 AUG_EXPORT int aug_festival(int god, int size);
+/**
+ * Sets the tactical layout of the legion garrisoned at fort_building_id. The one that matters for
+ * defence is FORMATION_MOP_UP (6): the legion hunts and attacks any enemy within ~20 tiles of the
+ * fort, refilling from its barracks, instead of holding station and letting enemies path past it.
+ * Returns 1 if the fort has a live legion and the layout was set, 0 otherwise.
+ */
+AUG_EXPORT int aug_legion_layout(int fort_building_id, int layout);
 
 #endif // AUG_GOVERN_H
