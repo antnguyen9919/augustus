@@ -14,4 +14,8 @@ void pantheon_set_god_autonomous(int god_id, int autonomous);
 int pantheon_popups_enabled(void);
 void pantheon_set_popups_enabled(int enabled);
 
+/** 1 while a governor API call is constructing; lets the observe lock stay on for the UI. */
+int pantheon_api_construction(void);
+void pantheon_set_api_construction(int active);
+
 #endif // PANTHEON_RULES_H

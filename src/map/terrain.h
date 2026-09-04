@@ -174,4 +174,10 @@ void map_terrain_migrate_shared_buildings(void);
 
 void map_terrain_load_state(buffer *buf, int expanded_terrain_data, buffer *images, int legacy_image_buffer);
 
+#ifdef PANTHEON
+#include <stdint.h>
+/** Pantheon: zero-copy view of the terrain grid (GRID_SIZE * GRID_SIZE entries). */
+const uint32_t *map_terrain_grid_ptr(void);
+#endif
+
 #endif // MAP_TERRAIN_H

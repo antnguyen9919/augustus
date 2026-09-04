@@ -15,4 +15,10 @@ void map_elevation_save_state(buffer *buf);
 
 void map_elevation_load_state(buffer *buf);
 
+#ifdef PANTHEON
+#include <stdint.h>
+/** Pantheon: zero-copy view of the elevation grid (GRID_SIZE * GRID_SIZE entries). */
+const uint8_t *map_elevation_grid_ptr(void);
+#endif
+
 #endif // MAP_ELEVATION_H

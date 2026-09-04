@@ -58,3 +58,10 @@ void map_elevation_load_state(buffer *buf)
 {
     map_grid_load_state_u8(elevation.items, buf);
 }
+
+#ifdef PANTHEON
+const uint8_t *map_elevation_grid_ptr(void)
+{
+    return elevation.items;
+}
+#endif

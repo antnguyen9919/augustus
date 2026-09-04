@@ -29,3 +29,15 @@ void pantheon_set_popups_enabled(int enabled)
 {
     popups_disabled = !enabled;
 }
+
+static int api_construction;
+
+int pantheon_api_construction(void)
+{
+    return api_construction;
+}
+
+void pantheon_set_api_construction(int active)
+{
+    api_construction = active ? 1 : 0;
+}

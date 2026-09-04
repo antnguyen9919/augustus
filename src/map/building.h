@@ -61,4 +61,10 @@ void map_building_load_state(buffer *buildings, buffer *damage, buffer *rubble, 
 
 int map_building_is_reservoir(int x, int y);
 
+#ifdef PANTHEON
+#include <stdint.h>
+/** Pantheon: zero-copy view of the building-id grid (GRID_SIZE * GRID_SIZE entries). */
+const uint32_t *map_building_grid_ptr(void);
+#endif
+
 #endif // MAP_BUILDING_H

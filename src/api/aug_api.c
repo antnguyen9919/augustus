@@ -10,6 +10,7 @@
 #include "game/game.h"
 #include "game/system.h"
 #include "game/tick.h"
+#include "map/road_network.h"
 #include "game/time.h"
 #include "platform/file_manager.h"
 #include "platform/log.h"
@@ -87,6 +88,7 @@ int aug_load_scenario(const char *name)
     int ok = game_file_start_scenario_by_name((const uint8_t *) name);
     if (ok) {
         state.ticks_total = 0;
+        map_road_network_update(); // stock only recomputes this on the daily tick; sensors want it at once
     }
     return ok;
 }

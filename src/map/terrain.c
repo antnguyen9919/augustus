@@ -682,3 +682,10 @@ void map_terrain_load_state(buffer *buf, int expanded_terrain_data, buffer *imag
     }
     determine_original_trees(images, legacy_image_buffer);
 }
+
+#ifdef PANTHEON
+const uint32_t *map_terrain_grid_ptr(void)
+{
+    return terrain_grid.items;
+}
+#endif

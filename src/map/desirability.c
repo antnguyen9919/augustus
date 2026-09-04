@@ -232,3 +232,10 @@ void map_desirability_load_state(buffer *buf)
 {
     map_grid_load_state_i8(desirability_grid.items, buf);
 }
+
+#ifdef PANTHEON
+const int8_t *map_desirability_grid_ptr(void)
+{
+    return desirability_grid.items;
+}
+#endif

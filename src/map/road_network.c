@@ -93,3 +93,10 @@ void map_road_network_update(void)
         }
     }
 }
+
+#ifdef PANTHEON
+const uint8_t *map_road_network_grid_ptr(void)
+{
+    return network.items;
+}
+#endif

@@ -206,3 +206,10 @@ void map_building_get_health(const building *b, int grid_offset, int *current, i
     *current = current_hp;
     *max = max_hp;
 }
+
+#ifdef PANTHEON
+const uint32_t *map_building_grid_ptr(void)
+{
+    return buildings_grid.items;
+}
+#endif
