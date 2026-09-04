@@ -7,10 +7,12 @@
 #include "building/construction_routed.h"
 #include "building/house_evolution.h"
 #include "building/properties.h"
+#include "building/roadblock.h"
 #include "city/culture.h"
 #include "city/festival.h"
 #include "city/finance.h"
 #include "city/labor.h"
+#include "core/config.h"
 #include "figure/formation.h"
 #include "figure/formation_legion.h"
 #include "game/undo.h"
@@ -22,8 +24,10 @@
 #include "map/grid.h"
 #include "map/property.h"
 #include "map/road_network.h"
+#include "map/routing_terrain.h"
 #include "map/terrain.h"
 #include "map/tiles.h"
+#include "map/water_supply.h"
 #include "pantheon/rules.h"
 #include "translation/translation.h"
 #include "scenario/map.h"
@@ -276,6 +280,31 @@ static void end_construction(void)
     pantheon_set_api_construction(0);
 }
 
+/**
+ * The per-type terrain mask place_building() itself uses (building/construction_building.c). This
+ * check used to hardcode TERRAIN_ALL, which is stricter than the engine for every type that is
+ * meant to sit on top of something: a roadblock belongs ON a road, a gatehouse and a tower on a
+ * wall, and a reservoir may overlap an aqueduct. TERRAIN_ALL meant no tile could satisfy both this
+ * function and place_building at once, so those types were silently unbuildable through the API.
+ */
+static int placement_mask(int type)
+{
+    if ((building_type_is_roadblock(type) && !(type == BUILDING_GRANARY || type == BUILDING_WAREHOUSE)) ||
+        (config_get(CONFIG_GP_CH_WAREHOUSES_GRANARIES_OVER_ROAD_PLACEMENT) &&
+        (type == BUILDING_GRANARY || type == BUILDING_WAREHOUSE))) {
+        return type == BUILDING_GATEHOUSE
+            ? ~TERRAIN_WALL & ~TERRAIN_ROAD & ~TERRAIN_HIGHWAY & ~TERRAIN_BUILDING
+            : ~TERRAIN_ROAD & ~TERRAIN_HIGHWAY;
+    }
+    if (type == BUILDING_TOWER) {
+        return ~TERRAIN_WALL & ~TERRAIN_BUILDING;
+    }
+    if (type == BUILDING_RESERVOIR || type == BUILDING_DRAGGABLE_RESERVOIR) {
+        return ~TERRAIN_AQUEDUCT;
+    }
+    return TERRAIN_ALL;
+}
+
 int aug_can_build(int type, int x, int y)
 {
     int size = aug_build_size(type);
@@ -286,7 +315,11 @@ int aug_can_build(int type, int x, int y)
         return 0;
     }
     int check_figure = type == BUILDING_ROADBLOCK && size == 1 ? 0 : 1;
-    if (!map_tiles_are_clear(x, y, size, TERRAIN_ALL, check_figure)) {
+    if (!map_tiles_are_clear(x, y, size, placement_mask(type), check_figure)) {
+        return 0;
+    }
+    // A roadblock replaces a road tile, so alone among the types it needs one to already be there.
+    if (type == BUILDING_ROADBLOCK && map_tiles_are_clear(x, y, size, TERRAIN_ROAD, check_figure)) {
         return 0;
     }
     begin_construction(type);
@@ -488,6 +521,9 @@ int aug_legion_layout(int fort_building_id, int layout)
     if (layout < 0 || layout >= FORMATION_MAX) {
         return 0;
     }
+    if (fort_building_id <= 0 || fort_building_id >= building_count()) {
+        return 0;
+    }
     building *fort = building_get(fort_building_id);
     // A fort placed this same month is still BUILDING_STATE_CREATED; its legion is created at
     // placement, so accept CREATED as well and let the formation guard below reject anything else.
@@ -499,5 +535,67 @@ int aug_legion_layout(int fort_building_id, int layout)
         return 0;
     }
     formation_legion_change_layout(m, layout);
+    return 1;
+}
+
+int aug_reservoir_would_fill(int x, int y)
+{
+    if (!map_grid_is_inside(x, y, 3)) {
+        return 0;
+    }
+    // The two ways map_water_supply_update_reservoir_fountain() fills a reservoir: natural water in
+    // the ring around its 3x3, or an aqueduct running back to one that is already filled.
+    if (map_terrain_exists_tile_in_area_with_type(x - 1, y - 1, 5, TERRAIN_WATER)) {
+        return 1;
+    }
+    return map_water_supply_has_aqueduct_access(map_grid_offset(x, y)) ? 1 : 0;
+}
+
+int aug_aqueduct(int x0, int y0, int x1, int y1, int measure_only)
+{
+    if (!map_grid_is_inside(x0, y0, 1) || !map_grid_is_inside(x1, y1, 1)) {
+        return 0;
+    }
+    if (!measure_only && city_finance_out_of_money()) {
+        return 0;
+    }
+    if (!take_undo_backups(BUILDING_AQUEDUCT)) {
+        return 0;
+    }
+    // Three ways this differs from the road helper: it reports success as 1/0 and hands the tile
+    // count back as a cost; it writes terrain even when only measuring, so the undo backups above
+    // are what make a measurement free; and it leaves the aqueduct tiles and land routing for the
+    // caller to refresh, which the engine's own drag does at its call site.
+    int cost = 0;
+    int placed = building_construction_place_aqueduct(measure_only, x0, y0, x1, y1, &cost);
+    int per_tile = aug_build_cost(BUILDING_AQUEDUCT);
+    int tiles = placed && per_tile > 0 ? cost / per_tile : 0;
+    if (measure_only || tiles <= 0) {
+        game_undo_restore_map(0);
+    } else {
+        city_finance_process_construction(cost);
+        map_tiles_update_all_aqueducts(0);
+        map_routing_update_land();
+    }
+    game_undo_disable();
+    return tiles;
+}
+
+int aug_roadblock_permissions(int building_id, int mask)
+{
+    if (building_id <= 0 || building_id >= building_count()) {
+        return 0;
+    }
+    building *b = building_get(building_id);
+    if (b->state != BUILDING_STATE_IN_USE && b->state != BUILDING_STATE_CREATED) {
+        return 0;
+    }
+    // 1 is a plain roadblock or gate; granaries, warehouses and bridges also carry permissions but
+    // are not something the governor should be reconfiguring by accident.
+    if (building_type_is_roadblock(b->type) != 1) {
+        return 0;
+    }
+    // Assign rather than toggle: building_roadblock_set_permission XORs a single bit at a time.
+    b->data.roadblock.exceptions = mask & ROADBLOCK_PERMISSION_ALL;
     return 1;
 }

@@ -140,4 +140,28 @@ AUG_EXPORT int aug_festival(int god, int size);
  */
 AUG_EXPORT int aug_legion_layout(int fort_building_id, int layout);
 
+/**
+ * Whether a 3x3 reservoir placed with its top-left at (x,y) would actually hold water: either
+ * natural water lies in the ring around it, or an aqueduct there already leads back to a filled
+ * reservoir. A reservoir may be placed anywhere, but a dry one supplies nothing.
+ */
+AUG_EXPORT int aug_reservoir_would_fill(int x, int y);
+
+/**
+ * Runs an aqueduct along the engine's own route from (x0,y0) to (x1,y1) and returns its length in
+ * tiles, 0 if there is no route. With measure_only nothing is built or charged. The endpoints for
+ * a reservoir are its mid-side connector tiles -- (1,-1), (3,1), (1,3), (-1,1) from its top-left --
+ * not the reservoir itself. An aqueduct may cross a road but never run along one.
+ */
+AUG_EXPORT int aug_aqueduct(int x0, int y0, int x1, int y1, int measure_only);
+
+/**
+ * Sets which walkers may pass a roadblock or gate, as a bitmask of 1 << roadblock_permission
+ * (MAINTENANCE 1, PRIEST 2, MARKET 3, ENTERTAINER 4, EDUCATION 5, MEDICINE 6, TAX_COLLECTOR 7,
+ * LABOR_SEEKER 8, MISSIONARY 9, WATCHMAN 10); 0xffff lets everyone through. A newly built roadblock
+ * blocks every roaming walker until this is called. Destination walkers -- market buyers, cart
+ * pushers, immigrants -- pass regardless. Returns 1 if the mask was set.
+ */
+AUG_EXPORT int aug_roadblock_permissions(int building_id, int mask);
+
 #endif // AUG_GOVERN_H
